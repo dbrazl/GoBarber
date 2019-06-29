@@ -8,6 +8,9 @@ import Notification from '../schemas/Notification';
 
 class AppointmentController {
   async index(req, res) {
+    /**
+     * List appoitnments formatted
+     */
     const { page } = req.query;
 
     const appointments = await Appointment.findAll({
@@ -31,11 +34,15 @@ class AppointmentController {
         },
       ],
     });
+    /** */
 
     return res.json(appointments);
   }
 
   async store(req, res) {
+    /**
+     * Check schema of req body is valid
+     */
     const schema = Yup.object().shape({
       provider_id: Yup.number().required(),
       date: Yup.date().required(),
@@ -44,7 +51,11 @@ class AppointmentController {
     if (!(await schema.isValid(req.body))) {
       return res.status(400).json({ error: 'Validation fails' });
     }
+    /** */
 
+    /**
+     * Check if an appointment is create to provider
+     */
     const { provider_id, date } = req.body;
 
     const isProvider = await User.findOne({
@@ -56,16 +67,27 @@ class AppointmentController {
         .status(400)
         .json({ error: 'You can only create a appointment with providers' });
     }
+    /** */
+
+    /**
+     * Check if an provider create a appointment to himself
+     */
+    if (req.userId === provider_id) {
+      return res
+        .status(400)
+        .json({ error: 'Providers can not create a appointment to himself' });
+    }
+    /** */
 
     /**
      * Check for past dates
      */
-
     const hourStart = startOfHour(parseISO(date));
 
     if (isBefore(hourStart, new Date())) {
       return res.status(400).json({ error: 'Past dates are not permited' });
     }
+    /** */
 
     /**
      * Check date availabity
@@ -89,6 +111,7 @@ class AppointmentController {
       provider_id,
       date,
     });
+    /** */
 
     /**
      * Notify appointement to provider
